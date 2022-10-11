@@ -74,6 +74,11 @@ oc create -f icca-subscription.yaml
 displayStepHeader 7 "Verify the Operator installation"
 #There should be icca-operator.v0.0.1
 
+while [ "$(kubectl get pods -l=control-plane=controller-manager -n icca-operator -o jsonpath='{.items[*].status.phase}')" != "Running" ]; do
+   sleep 5
+   echo "Waiting for ICCA Operator to be ready."
+done
+
 check_for_csv_success=$(checkClusterServiceVersionSucceeded 2>&1)
 
 if [[ "${check_for_csv_success}" == "Succeeded" ]]; then
