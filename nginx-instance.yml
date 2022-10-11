@@ -1,0 +1,9 @@
+apiVersion: icca.ibm.com/v1alpha1
+kind: ICCA
+metadata:
+  name: icca-example
+  namespace: default
+spec:
+  helmChartUrl: https://github.com/rhm-samples/sample-helm/tree/main/charts/nginx
+  name: nginx
+  installNamespace: quarkus-nginx-test
