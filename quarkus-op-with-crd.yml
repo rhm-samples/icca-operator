@@ -1,0 +1,607 @@
+# Quarkus ICCA Operator for Openshift with Nginx instance
+# helmChartUrl: https://github.com/rhm-samples/sample-helm/tree/main/charts/nginx
+# installNamespace: quarkus-nginx-test
+
+## Install Steps
+
+# 1. Login to oc CLI. Run "oc whoami" to confirm successful login.
+# 2. Run "oc project default"
+# 3. Run "curl -O https://raw.githubusercontent.com/rhm-samples/icca-operator-scripts/main/quarkus-op-with-crd.yml"
+# 4. Run "oc apply -f quarkus-op-with-crd.yml"
+# 5. Run "curl -O https://raw.githubusercontent.com/rhm-samples/icca-operator-scripts/main/nginx-instance.yml"
+# 6. Run "oc apply -f nginx-instance.yml"
+
+## Verify Installation 
+## Wait for a minute before testing while deployments gets ready
+
+# 1. Run "oc get svc --namespace quarkus-nginx-test -w nginx"
+# Success, if service with `nginx` name is available. This confirms nginx installation in quarkus-nginx-test namespace
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: iccas.icca.ibm.com
+spec:
+  group: icca.ibm.com
+  names:
+    kind: ICCA
+    plural: iccas
+    singular: icca
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          properties:
+            spec:
+              properties:
+                helmChartUrl:
+                  type: string
+                installNamespace:
+                  type: string
+                name:
+                  type: string
+              type: object
+            status:
+              type: object
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: iccatools.icca.ibm.com
+spec:
+  group: icca.ibm.com
+  names:
+    kind: ICCATool
+    plural: iccatools
+    singular: iccatool
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          properties:
+            spec:
+              properties:
+                helmChartUrl:
+                  type: string
+                installNamespace:
+                  type: string
+                name:
+                  type: string
+              type: object
+            status:
+              type: object
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  annotations:
+    app.quarkus.io/build-timestamp: 2022-10-10 - 08:46:02 +0000
+  labels:
+    app.kubernetes.io/name: icca-operator-operator
+    app.kubernetes.io/version: 0.0.1-SNAPSHOT
+  name: icca-operator-operator
+  namespace: default
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    app.quarkus.io/build-timestamp: 2022-10-10 - 08:46:02 +0000
+    prometheus.io/scrape: "true"
+    prometheus.io/path: /q/metrics
+    prometheus.io/port: "8877"
+    prometheus.io/scheme: http
+  labels:
+    app.kubernetes.io/name: icca-operator-operator
+    app.kubernetes.io/version: 0.0.1-SNAPSHOT
+  name: icca-operator-operator
+  namespace: default
+spec:
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8877
+  selector:
+    app.kubernetes.io/name: icca-operator-operator
+    app.kubernetes.io/version: 0.0.1-SNAPSHOT
+  type: ClusterIP
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: icca-operator-operator-view
+  namespace: default
+roleRef:
+  kind: ClusterRole
+  apiGroup: rbac.authorization.k8s.io
+  name: view
+subjects:
+  - kind: ServiceAccount
+    name: icca-operator-operator
+    namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: iccareconciler-cluster-role
+  namespace: default
+rules:
+  - apiGroups:
+      - icca.ibm.com
+    resources:
+      - iccas
+      - iccas/status
+      - iccas/finalizers
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - delete
+      - patch
+      - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: iccatoolreconciler-cluster-role
+  namespace: default
+rules:
+  - apiGroups:
+      - icca.ibm.com
+    resources:
+      - iccatools
+      - iccatools/status
+      - iccatools/finalizers
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - delete
+      - patch
+      - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: josdk-crd-validating-cluster-role
+  namespace: default
+rules:
+  - apiGroups:
+      - apiextensions.k8s.io
+    resources:
+      - customresourcedefinitions
+    verbs:
+      - get
+      - list
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: iccareconciler-cluster-role-binding
+  namespace: default
+roleRef:
+  kind: ClusterRole
+  apiGroup: rbac.authorization.k8s.io
+  name: iccareconciler-cluster-role
+subjects:
+  - kind: ServiceAccount
+    name: icca-operator-operator
+    namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: iccareconciler-crd-validating-role-binding
+  namespace: default
+roleRef:
+  kind: ClusterRole
+  apiGroup: rbac.authorization.k8s.io
+  name: josdk-crd-validating-cluster-role
+subjects:
+  - kind: ServiceAccount
+    name: icca-operator-operator
+    namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: iccatoolreconciler-cluster-role-binding
+  namespace: default
+roleRef:
+  kind: ClusterRole
+  apiGroup: rbac.authorization.k8s.io
+  name: iccatoolreconciler-cluster-role
+subjects:
+  - kind: ServiceAccount
+    name: icca-operator-operator
+    namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: iccatoolreconciler-crd-validating-role-binding
+  namespace: default
+roleRef:
+  kind: ClusterRole
+  apiGroup: rbac.authorization.k8s.io
+  name: josdk-crd-validating-cluster-role
+subjects:
+  - kind: ServiceAccount
+    name: icca-operator-operator
+    namespace: default
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    app.quarkus.io/build-timestamp: 2022-10-10 - 08:46:02 +0000
+    prometheus.io/scrape: "true"
+    prometheus.io/path: /q/metrics
+    prometheus.io/port: "8877"
+    prometheus.io/scheme: http
+  labels:
+    app.kubernetes.io/name: icca-operator-operator
+    app.kubernetes.io/version: 0.0.1-SNAPSHOT
+  name: icca-operator-operator
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: icca-operator-operator
+      app.kubernetes.io/version: 0.0.1-SNAPSHOT
+  template:
+    metadata:
+      annotations:
+        app.quarkus.io/build-timestamp: 2022-10-10 - 08:46:02 +0000
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /q/metrics
+        prometheus.io/port: "8877"
+        prometheus.io/scheme: http
+      labels:
+        app.kubernetes.io/name: icca-operator-operator
+        app.kubernetes.io/version: 0.0.1-SNAPSHOT
+      namespace: default
+    spec:
+      containers:
+        - command:
+            - java
+            - -Dquarkus.http.host=0.0.0.0
+            - -Djava.util.logging.manager=org.jboss.logmanager.LogManager
+            - -jar
+            - /deployments/quarkus-run.jar
+          env:
+            - name: KUBERNETES_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: JAVA_APP_JAR
+              value: /deployments/quarkus-run.jar
+          image: 1rhnk/quarkus-hello-world-operator:ic2
+          imagePullPolicy: Always
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /q/health/live
+              port: 8877
+              scheme: HTTP
+            initialDelaySeconds: 0
+            periodSeconds: 30
+            successThreshold: 1
+            timeoutSeconds: 10
+          name: icca-operator-operator
+          ports:
+            - containerPort: 8877
+              name: http
+              protocol: TCP
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /q/health/ready
+              port: 8877
+              scheme: HTTP
+            initialDelaySeconds: 0
+            periodSeconds: 30
+            successThreshold: 1
+            timeoutSeconds: 10
+      serviceAccountName: icca-operator-operator
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: helmrole
+  namespace: default
+rules:
+  - verbs:
+      - list
+      - get
+      - watch
+      - create
+      - delete
+    apiGroups:
+      - ""
+    resources:
+      - pods
+  - verbs:
+      - create
+    apiGroups:
+      - ""
+    resources:
+      - pods/exec
+  - verbs:
+      - get
+    apiGroups:
+      - ""
+    resources:
+      - pods/log
+  - verbs:
+      - list
+      - get
+      - create
+      - delete
+      - update
+    apiGroups:
+      - ""
+    resources:
+      - pods/attach
+  - verbs:
+      - list
+      - get
+      - create
+      - delete
+      - update
+    apiGroups:
+      - ""
+    resources:
+      - secrets
+  - verbs:
+      - list
+      - get
+      - create
+      - delete
+      - update
+    apiGroups:
+      - ""
+    resources:
+      - services
+  - verbs:
+      - list
+      - get
+      - watch
+      - create
+      - delete
+      - update
+      - patch
+    apiGroups:
+      - "*"
+    resources:
+      - deployments
+---
+kind: ServiceAccount
+apiVersion: v1
+metadata:
+  name: deploy-sa
+  namespace: default
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: icca-deploy-rb
+  namespace: default
+subjects:
+  - kind: ServiceAccount
+    name: deploy-sa
+    namespace: default
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: helmrole
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: quarkus-dep-role
+  namespace: default
+rules:
+  - verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - delete
+      - patch
+    apiGroups:
+      - apps
+    resources:
+      - deployments
+  - verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - delete
+      - patch
+    apiGroups:
+      - ""
+    resources:
+      - pods/log
+  - verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - delete
+      - patch
+    apiGroups:
+      - ""
+    resources:
+      - pods/exec
+  - verbs:
+      - get
+      - watch
+      - list
+    apiGroups:
+      - ""
+    resources:
+      - pods
+  - verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - delete
+      - patch
+    apiGroups:
+      - apiextensions.k8s.io
+    resources:
+      - customresourcedefinitions
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: quarkus-dep-rb
+  namespace: default
+subjects:
+  - kind: ServiceAccount
+    name: icca-operator-operator
+    namespace: default
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: quarkus-dep-role
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: icca-helm-cluster-role
+rules:
+  - verbs:
+      - list
+      - get
+      - create
+      - delete
+      - update
+    apiGroups:
+      - ""
+    resources:
+      - namespaces
+  - verbs:
+      - list
+      - get
+      - watch
+      - create
+      - delete
+    apiGroups:
+      - ""
+    resources:
+      - pods
+  - verbs:
+      - create
+    apiGroups:
+      - ""
+    resources:
+      - pods/exec
+  - verbs:
+      - get
+    apiGroups:
+      - ""
+    resources:
+      - pods/log
+  - verbs:
+      - list
+      - get
+      - create
+      - delete
+      - update
+    apiGroups:
+      - ""
+    resources:
+      - pods/attach
+  - verbs:
+      - list
+      - get
+      - create
+      - delete
+      - update
+    apiGroups:
+      - ""
+    resources:
+      - secrets
+  - verbs:
+      - list
+      - get
+      - create
+      - delete
+      - update
+    apiGroups:
+      - ""
+    resources:
+      - services
+  - verbs:
+      - list
+      - get
+      - watch
+      - create
+      - delete
+      - update
+      - patch
+    apiGroups:
+      - "*"
+    resources:
+      - deployments
+  - verbs:
+      - list
+      - get
+      - watch
+      - create
+      - delete
+      - update
+      - patch
+    apiGroups:
+      - policy
+    resources:
+      - poddisruptionbudgets
+  - verbs:
+      - list
+      - get
+      - watch
+      - create
+      - delete
+      - update
+      - patch
+    apiGroups:
+      - apps
+    resources:
+      - statefulsets
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: deploy-rb-cluster
+subjects:
+  - kind: ServiceAccount
+    name: deploy-sa
+    namespace: default
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: icca-helm-cluster-role
