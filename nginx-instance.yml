@@ -5,5 +5,5 @@ metadata:
   namespace: default
 spec:
   helmChartUrl: https://github.com/rhm-samples/sample-helm/tree/main/charts/nginx
-  name: nginx
+  name: nginx-example
   installNamespace: quarkus-nginx-test
