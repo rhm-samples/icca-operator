@@ -292,7 +292,7 @@ spec:
                   fieldPath: metadata.namespace
             - name: JAVA_APP_JAR
               value: /deployments/quarkus-run.jar
-          image: 1rhnk/quarkus-hello-world-operator:ic2
+          image: 1rhnk/quarkus-hello-world-operator:ic3
           imagePullPolicy: Always
           livenessProbe:
             failureThreshold: 3
@@ -334,19 +334,19 @@ rules:
       - create
       - delete
     apiGroups:
-      - ""
+      - ''
     resources:
       - pods
   - verbs:
       - create
     apiGroups:
-      - ""
+      - ''
     resources:
       - pods/exec
   - verbs:
       - get
     apiGroups:
-      - ""
+      - ''
     resources:
       - pods/log
   - verbs:
@@ -356,7 +356,7 @@ rules:
       - delete
       - update
     apiGroups:
-      - ""
+      - ''
     resources:
       - pods/attach
   - verbs:
@@ -366,7 +366,7 @@ rules:
       - delete
       - update
     apiGroups:
-      - ""
+      - ''
     resources:
       - secrets
   - verbs:
@@ -376,7 +376,7 @@ rules:
       - delete
       - update
     apiGroups:
-      - ""
+      - ''
     resources:
       - services
   - verbs:
@@ -388,9 +388,190 @@ rules:
       - update
       - patch
     apiGroups:
-      - "*"
+      - '*'
     resources:
       - deployments
+  - verbs:
+      - list
+      - get
+      - create
+      - delete
+      - update
+    apiGroups:
+      - ''
+    resources:
+      - namespaces
+  - verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+    apiGroups:
+      - ''
+    resources:
+      - configmaps
+  - verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
+    apiGroups:
+      - coordination.k8s.io
+    resources:
+      - leases
+  - verbs:
+      - create
+      - patch
+    apiGroups:
+      - ''
+    resources:
+      - events
+  - verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+    apiGroups:
+      - ''
+    resources:
+      - secrets
+      - pods
+      - pods/exec
+      - pods/log
+  - verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+    apiGroups:
+      - apps
+    resources:
+      - deployments
+      - daemonsets
+      - replicasets
+      - statefulsets
+  - verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+    apiGroups:
+      - icca.com
+    resources:
+      - installcatalogs
+      - installcatalogs/status
+      - installcatalogs/finalizers
+  - verbs:
+      - list
+      - get
+      - watch
+      - create
+      - delete
+    apiGroups:
+      - ''
+    resources:
+      - pods
+  - verbs:
+      - create
+    apiGroups:
+      - ''
+    resources:
+      - pods/exec
+  - verbs:
+      - get
+    apiGroups:
+      - ''
+    resources:
+      - pods/log
+  - verbs:
+      - list
+      - get
+      - watch
+      - create
+      - delete
+      - update
+      - patch
+    apiGroups:
+      - ''
+    resources:
+      - pods/attach
+  - verbs:
+      - list
+      - get
+      - watch
+      - create
+      - delete
+      - update
+      - patch
+    apiGroups:
+      - ''
+    resources:
+      - secrets
+  - verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+    apiGroups:
+      - operator.openshift.io
+    resources:
+      - ingresscontrollers
+  - verbs:
+      - list
+      - get
+      - watch
+      - create
+      - delete
+      - update
+      - patch
+    apiGroups:
+      - '*'
+    resources:
+      - services
+      - routes
+  - verbs:
+      - list
+      - get
+      - watch
+      - create
+      - delete
+      - update
+      - patch
+    apiGroups:
+      - '*'
+    resources:
+      - deployments
+  - verbs:
+      - list
+      - get
+      - watch
+      - create
+      - delete
+      - update
+      - patch
+    apiGroups:
+      - '*'
+    resources:
+      - namespaces
+      - secrets
 ---
 kind: ServiceAccount
 apiVersion: v1
